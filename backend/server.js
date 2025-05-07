@@ -1,0 +1,94 @@
+const WebSocket = require('ws');
+const http = require('http');
+
+// Create HTTP server
+const server = http.createServer();
+const port = 3000;
+
+// Create WebSocket server
+const wss = new WebSocket.Server({ server });
+
+// Store connected clients
+const clients = new Map();
+let userCounter = 0;
+
+// Handle WebSocket connections
+wss.on('connection', (ws) => {
+  const userId = ++userCounter;
+  const username = `User${userId}`;
+  console.log(`${username} connected`);
+  
+  // Store client in the map
+  clients.set(ws, { username });
+  
+  // Send welcome message to the new client
+  ws.send(JSON.stringify({
+    type: 'connect',
+    data: {
+      username,
+      message: `Welcome ${username}! You are now connected.`
+    }
+  }));
+  
+  // Notify all clients about new connection
+  broadcastMessage({
+    type: 'notification',
+    data: {
+      message: `${username} joined the chat`,
+      timestamp: new Date().toISOString()
+    }
+  });
+  
+  // Handle incoming messages
+  ws.on('message', (message) => {
+    try {
+      const parsedMessage = JSON.parse(message);
+      
+      // Broadcast the message to all clients
+      broadcastMessage({
+        type: 'message',
+        data: {
+          username,
+          text: parsedMessage.text,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (e) {
+      console.error('Invalid message format:', e);
+    }
+  });
+  
+  // Handle client disconnection
+  ws.on('close', () => {
+    const userData = clients.get(ws);
+    console.log(`${userData.username} disconnected`);
+    
+    // Remove client from the map
+    clients.delete(ws);
+    
+    // Notify all clients about disconnection
+    broadcastMessage({
+      type: 'notification',
+      data: {
+        message: `${userData.username} left the chat`,
+        timestamp: new Date().toISOString()
+      }
+    });
+  });
+});
+
+// Function to broadcast messages to all connected clients
+function broadcastMessage(message) {
+  const messageString = JSON.stringify(message);
+  
+  clients.forEach((userData, client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(messageString);
+    }
+  });
+}
+
+// Start the server
+server.listen(port, () => {
+  console.log(`WebSocket server is running on port ${port}`);
+});
