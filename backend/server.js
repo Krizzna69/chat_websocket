@@ -1,9 +1,50 @@
 const WebSocket = require('ws');
 const http = require('http');
+const path = require('path');
+const fs = require('fs');
 
 // Create HTTP server
-const server = http.createServer();
-const port = 3000;
+const server = http.createServer((req, res) => {
+  // Simple routing
+  if (req.url === '/' || req.url === '/index.html') {
+    // Serve index.html
+    fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
+      if (err) {
+        res.writeHead(500);
+        return res.end('Error loading index.html');
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(data);
+    });
+  } else if (req.url === '/styles.css') {
+    // Serve CSS file
+    fs.readFile(path.join(__dirname, 'styles.css'), (err, data) => {
+      if (err) {
+        res.writeHead(500);
+        return res.end('Error loading styles.css');
+      }
+      res.writeHead(200, { 'Content-Type': 'text/css' });
+      res.end(data);
+    });
+  } else if (req.url === '/app.js') {
+    // Serve JavaScript file
+    fs.readFile(path.join(__dirname, 'app.js'), (err, data) => {
+      if (err) {
+        res.writeHead(500);
+        return res.end('Error loading app.js');
+      }
+      res.writeHead(200, { 'Content-Type': 'application/javascript' });
+      res.end(data);
+    });
+  } else {
+    // Health check endpoint for Render
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('WebSocket Chat Server is running');
+  }
+});
+
+// Use the PORT environment variable provided by Render
+const port = process.env.PORT || 3000;
 
 // Create WebSocket server
 const wss = new WebSocket.Server({ server });
@@ -90,5 +131,7 @@ function broadcastMessage(message) {
 
 // Start the server
 server.listen(port, () => {
-  console.log(`WebSocket server is running on port ${port}`);
+  console.log(`WebSocket chat server is running on port ${port}`);
+  console.log(`Server started at: ${new Date().toISOString()}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
