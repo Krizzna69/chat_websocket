@@ -16,7 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const host = window.location.host;
     
     // Create the WebSocket connection
-    ws = new WebSocket(`${protocol}//${host}`);
+    ws = new WebSocket('wss://chat-websocket-juva.onrender.com');
+
     
     // Connection opened
     ws.addEventListener('open', () => {
